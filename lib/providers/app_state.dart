@@ -54,8 +54,16 @@ class AppState extends ChangeNotifier {
     installDate = _dateFmt.parse(installDateStr);
 
     await _loadTodaysEntries();
-    await NotificationService.instance.scheduleDailyBeeps(wakeHour: wakeHour, sleepHour: sleepHour);
 
+    // Do NOT schedule notifications here — that needs runtime permissions and
+    // can hang on some Android devices, leaving the user on a forever spinner.
+    // main.dart schedules beeps after init + permission prompts.
+    _initialized = true;
+    notifyListeners();
+  }
+
+  /// Used if init() throws so the UI is never stuck on the loading spinner.
+  void forceInitialized() {
     _initialized = true;
     notifyListeners();
   }
@@ -110,7 +118,11 @@ class AppState extends ChangeNotifier {
     sleepHour = newSleep;
     await _db.setSetting('wakeHour', newWake.toString());
     await _db.setSetting('sleepHour', newSleep.toString());
-    await NotificationService.instance.scheduleDailyBeeps(wakeHour: wakeHour, sleepHour: sleepHour);
+    try {
+      await NotificationService.instance.scheduleDailyBeeps(wakeHour: wakeHour, sleepHour: sleepHour);
+    } catch (_) {
+      // Non-fatal: UI still updates wake/sleep even if OS blocks alarms.
+    }
     notifyListeners();
   }
 

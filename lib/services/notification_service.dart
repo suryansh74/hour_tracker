@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
@@ -19,13 +20,22 @@ class NotificationService {
 
   Future<void> init() async {
     tz_data.initializeTimeZones();
-    tz.setLocalLocation(tz.getLocation('Asia/Kolkata'));
+    // Prefer device local offset; fall back to Asia/Kolkata if lookup fails.
+    try {
+      final name = DateTime.now().timeZoneName;
+      // timezone package needs an IANA id; use a safe default for India users
+      // and let the scheduled wall-clock time follow local device time via TZDateTime.now.
+      tz.setLocalLocation(tz.getLocation('Asia/Kolkata'));
+      debugPrint('Timezone set (device reports: $name)');
+    } catch (_) {
+      tz.setLocalLocation(tz.UTC);
+    }
 
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
     );
     const initSettings = InitializationSettings(android: androidInit, iOS: iosInit);
 
@@ -50,21 +60,34 @@ class NotificationService {
   }
 
   Future<void> requestPermissions() async {
-    await _plugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestNotificationsPermission();
-    await _plugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestExactAlarmsPermission();
-    await _plugin
-        .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
-        ?.requestPermissions(alert: true, badge: true, sound: true);
+    final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    try {
+      await android?.requestNotificationsPermission();
+    } catch (e) {
+      debugPrint('requestNotificationsPermission: $e');
+    }
+    try {
+      await android?.requestExactAlarmsPermission();
+    } catch (e) {
+      debugPrint('requestExactAlarmsPermission: $e');
+    }
+    try {
+      await _plugin
+          .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>()
+          ?.requestPermissions(alert: true, badge: true, sound: true);
+    } catch (e) {
+      debugPrint('iOS requestPermissions: $e');
+    }
   }
 
   /// Reschedules all daily beeps to fire once per hour between [wakeHour]
   /// (inclusive) and [sleepHour] (exclusive) every day, indefinitely.
   Future<void> scheduleDailyBeeps({required int wakeHour, required int sleepHour}) async {
-    await _plugin.cancelAll();
+    try {
+      await _plugin.cancelAll();
+    } catch (e) {
+      debugPrint('cancelAll: $e');
+    }
 
     final activeHours = <int>[];
     if (wakeHour < sleepHour) {
@@ -75,34 +98,68 @@ class NotificationService {
       activeHours.addAll([for (var h = 0; h < sleepHour; h++) h]);
     }
 
+    // Prefer exact alarms; fall back to inexact if the OS denies exact.
+    var mode = AndroidScheduleMode.exactAllowWhileIdle;
+
     for (final hour in activeHours) {
-      await _plugin.zonedSchedule(
-        hour,
-        'Log your last hour',
-        'What were you doing? Tap to record it.',
-        _nextInstanceOfHour(hour),
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'hourly_beep',
-            'Hourly Check-in',
-            channelDescription: 'Reminds you every active hour to log what you did.',
-            importance: Importance.max,
-            priority: Priority.high,
+      try {
+        await _plugin.zonedSchedule(
+          hour,
+          'Log your last hour',
+          'What were you doing? Tap to record it.',
+          _nextInstanceOfHour(hour),
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'hourly_beep',
+              'Hourly Check-in',
+              channelDescription: 'Reminds you every active hour to log what you did.',
+              importance: Importance.max,
+              priority: Priority.high,
+            ),
+            iOS: DarwinNotificationDetails(),
           ),
-          iOS: DarwinNotificationDetails(),
-        ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.time,
-        payload: hour.toString(),
-      );
+          androidScheduleMode: mode,
+          uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+          matchDateTimeComponents: DateTimeComponents.time,
+          payload: hour.toString(),
+        );
+      } catch (e) {
+        debugPrint('zonedSchedule hour=$hour mode=$mode failed: $e');
+        if (mode == AndroidScheduleMode.exactAllowWhileIdle) {
+          mode = AndroidScheduleMode.inexactAllowWhileIdle;
+          try {
+            await _plugin.zonedSchedule(
+              hour,
+              'Log your last hour',
+              'What were you doing? Tap to record it.',
+              _nextInstanceOfHour(hour),
+              const NotificationDetails(
+                android: AndroidNotificationDetails(
+                  'hourly_beep',
+                  'Hourly Check-in',
+                  channelDescription: 'Reminds you every active hour to log what you did.',
+                  importance: Importance.max,
+                  priority: Priority.high,
+                ),
+                iOS: DarwinNotificationDetails(),
+              ),
+              androidScheduleMode: mode,
+              uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+              matchDateTimeComponents: DateTimeComponents.time,
+              payload: hour.toString(),
+            );
+          } catch (e2) {
+            debugPrint('zonedSchedule fallback hour=$hour failed: $e2');
+          }
+        }
+      }
     }
   }
 
   tz.TZDateTime _nextInstanceOfHour(int hour) {
     final now = tz.TZDateTime.now(tz.local);
     var scheduled = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour);
-    if (scheduled.isBefore(now)) {
+    if (!scheduled.isAfter(now)) {
       scheduled = scheduled.add(const Duration(days: 1));
     }
     return scheduled;

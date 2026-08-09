@@ -9,7 +9,12 @@ import 'theme/app_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await NotificationService.instance.init();
+  // Init notifications quickly; never block forever on plugin setup.
+  try {
+    await NotificationService.instance.init();
+  } catch (e, st) {
+    debugPrint('NotificationService.init failed: $e\n$st');
+  }
   NotificationService.instance.onBeepTapped = openLogSheetForHour;
 
   runApp(const HourTrackerApp());
@@ -33,10 +38,26 @@ class _HourTrackerAppState extends State<HourTrackerApp> {
   }
 
   Future<void> _bootstrap() async {
-    await appState.init();
-    // Ask for notification permissions right after first load, so the
-    // very first day of use already gets beeps.
-    await NotificationService.instance.requestPermissions();
+    // Load local data and show UI as soon as possible.
+    try {
+      await appState.init();
+    } catch (e, st) {
+      debugPrint('AppState.init failed: $e\n$st');
+      // Still mark ready so the user is not stuck on a spinner.
+      appState.forceInitialized();
+    }
+
+    // Permissions + scheduling happen after the first frame — they must
+    // never keep the splash/loader visible.
+    try {
+      await NotificationService.instance.requestPermissions();
+      await NotificationService.instance.scheduleDailyBeeps(
+        wakeHour: appState.wakeHour,
+        sleepHour: appState.sleepHour,
+      );
+    } catch (e, st) {
+      debugPrint('Notification setup failed: $e\n$st');
+    }
   }
 
   @override
@@ -54,7 +75,18 @@ class _HourTrackerAppState extends State<HourTrackerApp> {
             themeMode: state.themeMode,
             home: state.initialized
                 ? const RootScreen()
-                : const Scaffold(body: Center(child: CircularProgressIndicator())),
+                : const Scaffold(
+                    body: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 16),
+                          Text('Starting Hour Tracker…'),
+                        ],
+                      ),
+                    ),
+                  ),
           );
         },
       ),
