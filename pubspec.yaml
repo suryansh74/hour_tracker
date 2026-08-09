@@ -1,5 +1,5 @@
 name: hour_tracker
-description: Hourly self-monitoring and productivity dashboard app.
+description: Offline-first Flutter productivity tracker that logs your activity every hour with reminders, analytics dashboards, calendar heatmaps, and CSV export.
 publish_to: "none"
 version: 1.0.0+1
 
@@ -39,6 +39,25 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  adaptive_icon_background: "#E8F4FC"
+  adaptive_icon_foreground: "assets/icon/app_icon.png"
+  web:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+  windows:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
+  macos:
+    generate: true
+    image_path: "assets/icon/app_icon.png"
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/icon/app_icon.png

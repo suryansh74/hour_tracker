@@ -15,6 +15,17 @@ Offline-first Flutter productivity tracker that logs your activity every hour wi
 - **Themes** — Light, dark, or system.
 - **Fully offline** — Data lives in a local SQLite database (sqflite). No account required.
 
+## Download (Android)
+
+Published APKs (when available) are on the **[Releases](https://github.com/suryansh74/hour_tracker/releases)** page.
+
+1. Open the latest release
+2. Download `app-release.apk`
+3. On your phone, allow **Install from unknown sources** for your browser/file manager
+4. Open the APK and install
+
+> **iOS:** Building an installable IPA requires a Mac + Apple Developer account. Use Xcode/`flutter build ipa` on a Mac if you need an iOS build.
+
 ## Screens
 
 | Screen | Purpose |
@@ -24,7 +35,7 @@ Offline-first Flutter productivity tracker that logs your activity every hour wi
 | **History** | Past days (read-only) |
 | **Settings** | Wake/sleep window, categories, theme, notifications, data cleanup |
 
-## Getting started
+## Getting started (developers)
 
 ### Prerequisites
 
@@ -38,6 +49,28 @@ cd hour_tracker
 flutter pub get
 flutter run
 ```
+
+### Build release APK
+
+```bash
+flutter pub get
+# (optional) regenerate icons after changing assets/icon/app_icon.png
+dart run flutter_launcher_icons
+flutter build apk --release
+```
+
+APK output:
+```
+build/app/outputs/flutter-apk/app-release.apk
+```
+
+### Publish APK on GitHub Releases
+
+1. Build the APK (command above)
+2. Go to https://github.com/suryansh74/hour_tracker/releases/new
+3. Create a tag e.g. `v1.0.0`
+4. Attach `app-release.apk`
+5. Publish
 
 ### Platforms
 
@@ -54,6 +87,8 @@ lib/
   services/        # SQLite (DatabaseService), notifications
   theme/
   widgets/         # Calendar heatmap, log-entry bottom sheet
+assets/
+  icon/            # App launcher icon source
 ```
 
 ## Data & privacy
