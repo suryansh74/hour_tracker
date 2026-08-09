@@ -11,16 +11,20 @@ No account. No cloud. Everything stays on your phone.
 
 ## Try it on Android
 
-**Direct download (APK):**  
-👉 **[Download Hour Tracker v1.0.0](https://github.com/suryansh74/hour_tracker/releases/download/v1.0.0/app-release.apk)**
+**Direct download (latest APK):**  
+👉 **[Download Hour Tracker v1.0.1](https://github.com/suryansh74/hour_tracker/releases/download/v1.0.1/app-release.apk)**
 
-Or open the [Releases page](https://github.com/suryansh74/hour_tracker/releases/tag/v1.0.0) and tap **`app-release.apk`** under **Assets**.
+Or open the [Releases page](https://github.com/suryansh74/hour_tracker/releases/latest) and tap **`app-release.apk`** under **Assets**.
+
+> **Use v1.0.1 or newer.** v1.0.0 could freeze on the loading screen — that is fixed in v1.0.1.
 
 ### How to install
 1. Download the APK on your Android phone  
 2. If asked, allow **Install unknown apps** for your browser or file manager  
 3. Open the downloaded file → **Install**  
 4. Open **Hour Tracker** from your app drawer  
+
+Installing over an older version usually keeps your data.
 
 > **iOS / iPhone:** Not available yet. The current release is Android-only. An iOS version needs a Mac and an Apple Developer account to build.
 
@@ -64,7 +68,8 @@ Requires [Flutter](https://docs.flutter.dev/get-started/install) 3.x.
 
 ## Links
 
-- **Android APK:** [v1.0.0 download](https://github.com/suryansh74/hour_tracker/releases/download/v1.0.0/app-release.apk)  
+- **Android APK (v1.0.1):** [Download](https://github.com/suryansh74/hour_tracker/releases/download/v1.0.1/app-release.apk)  
+- **Latest release:** https://github.com/suryansh74/hour_tracker/releases/latest  
 - **All releases:** https://github.com/suryansh74/hour_tracker/releases  
 - **Source code:** this repository  
 
