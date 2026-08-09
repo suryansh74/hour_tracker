@@ -1,47 +1,48 @@
 # Hour Tracker
 
-Offline-first Flutter productivity tracker that logs your activity every hour with reminders, analytics dashboards, calendar heatmaps, and CSV export.
+**Track what you do every hour — stay aware of how you spend your day.**
 
-## Features
+Hour Tracker is a simple offline app that asks you once an hour: *“What were you doing?”*  
+You pick a category (Deep Work, Study, Exercise, …), optionally add a note, and move on. Over time you get a clear picture of your focus, distractions, and streaks.
 
-- **Hourly logging** — Beeps every hour between your wake and sleep times so you can quickly tag what you did.
-- **Categories** — Custom categories with a 20-colour palette plus a full HSV custom colour picker.
-- **Dashboard** — Discipline score, lifetime missed hours, time-by-category pie chart, daily bar chart, and a 6-month calendar heatmap.
-- **History** — Browse every past day from the day you installed the app (read-only).
-- **Data control**
-  - Delete a category and all hours logged under it are removed completely (no leftover “Unknown” entries).
-  - Flexible date-range cleanup: pick any range between your install date and yesterday via a calendar picker.
-- **Export** — Share a CSV of all logged hours.
-- **Themes** — Light, dark, or system.
-- **Fully offline** — Data lives in a local SQLite database (sqflite). No account required.
+No account. No cloud. Everything stays on your phone.
 
-## Download (Android)
+---
 
-Published APKs (when available) are on the **[Releases](https://github.com/suryansh74/hour_tracker/releases)** page.
+## Try it on Android
 
-1. Open the latest release
-2. Download `app-release.apk`
-3. On your phone, allow **Install from unknown sources** for your browser/file manager
-4. Open the APK and install
+**Direct download (APK):**  
+👉 **[Download Hour Tracker v1.0.0](https://github.com/suryansh74/hour_tracker/releases/download/v1.0.0/app-release.apk)**
 
-> **iOS:** Building an installable IPA requires a Mac + Apple Developer account. Use Xcode/`flutter build ipa` on a Mac if you need an iOS build.
+Or open the [Releases page](https://github.com/suryansh74/hour_tracker/releases/tag/v1.0.0) and tap **`app-release.apk`** under **Assets**.
 
-## Screens
+### How to install
+1. Download the APK on your Android phone  
+2. If asked, allow **Install unknown apps** for your browser or file manager  
+3. Open the downloaded file → **Install**  
+4. Open **Hour Tracker** from your app drawer  
 
-| Screen | Purpose |
-|--------|---------|
-| **Today** | Log each hour of the current day |
-| **Dashboard** | Charts, scores, heatmap |
-| **History** | Past days (read-only) |
-| **Settings** | Wake/sleep window, categories, theme, notifications, data cleanup |
+> **iOS / iPhone:** Not available yet. The current release is Android-only. An iOS version needs a Mac and an Apple Developer account to build.
 
-## Getting started (developers)
+---
 
-### Prerequisites
+## What the app does
 
-- [Flutter](https://docs.flutter.dev/get-started/install) 3.x (SDK `>=3.0.0 <4.0.0`)
+| Feature | In plain words |
+|--------|----------------|
+| **Hourly reminders** | Beeps every hour (between the times you set as wake & sleep) so you log that slot |
+| **Categories** | Tag hours as Deep Work, Study, Leisure, etc. — add your own colours too |
+| **Today screen** | See today’s hours: logged, missed, or still ahead |
+| **Dashboard** | Charts of where time went, a calendar heatmap, and a quiet “discipline” score |
+| **History** | Scroll past days (read-only) |
+| **Export** | Share a CSV of all your logs |
+| **Privacy** | Fully offline. Nothing is uploaded |
 
-### Run
+---
+
+## For developers (run from source)
+
+If you want to build or change the code:
 
 ```bash
 git clone https://github.com/suryansh74/hour_tracker.git
@@ -50,53 +51,26 @@ flutter pub get
 flutter run
 ```
 
-### Build release APK
+**Build a release APK:**
 
 ```bash
-flutter pub get
-# (optional) regenerate icons after changing assets/icon/app_icon.png
-dart run flutter_launcher_icons
 flutter build apk --release
+# → build/app/outputs/flutter-apk/app-release.apk
 ```
 
-APK output:
-```
-build/app/outputs/flutter-apk/app-release.apk
-```
+Requires [Flutter](https://docs.flutter.dev/get-started/install) 3.x.
 
-### Publish APK on GitHub Releases
+---
 
-1. Build the APK (command above)
-2. Go to https://github.com/suryansh74/hour_tracker/releases/new
-3. Create a tag e.g. `v1.0.0`
-4. Attach `app-release.apk`
-5. Publish
+## Links
 
-### Platforms
+- **Android APK:** [v1.0.0 download](https://github.com/suryansh74/hour_tracker/releases/download/v1.0.0/app-release.apk)  
+- **All releases:** https://github.com/suryansh74/hour_tracker/releases  
+- **Source code:** this repository  
 
-Android, iOS, macOS, Windows, Linux, and Web (via Flutter).
+---
 
-## Project structure
+## Privacy
 
-```
-lib/
-  main.dart
-  models/          # TrackCategory, HourEntry
-  providers/       # AppState (ChangeNotifier)
-  screens/         # Today, Dashboard, History, Settings, Root
-  services/        # SQLite (DatabaseService), notifications
-  theme/
-  widgets/         # Calendar heatmap, log-entry bottom sheet
-assets/
-  icon/            # App launcher icon source
-```
-
-## Data & privacy
-
-- Everything is stored locally on device (`hour_tracker.db`).
-- Nothing is uploaded or synced to a server.
-- You can export CSV or permanently delete any date range from Settings.
-
-## Licence
-
-Private / personal use unless otherwise stated by the author.
+All data is stored only on your device (`hour_tracker.db`).  
+There is no login and no server.
