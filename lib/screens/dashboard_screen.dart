@@ -54,6 +54,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
       body: FutureBuilder<Map<String, List<HourEntry>>>(
+        // Key on dataGeneration so category/data deletions force a fresh query.
+        key: ValueKey('dash-${appState.dataGeneration}-$range'),
         future: appState.entriesGroupedByDate(dateFmt.format(start), dateFmt.format(end)),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
@@ -70,6 +72,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _SectionTitle('Last 6 months'),
               const SizedBox(height: 12),
               FutureBuilder<Map<String, List<HourEntry>>>(
+                key: ValueKey('heat-${appState.dataGeneration}'),
                 future: appState.entriesGroupedByDate(
                   dateFmt.format(DateTime.now().subtract(const Duration(days: 179))),
                   dateFmt.format(end),
@@ -127,6 +130,7 @@ class _ScoreCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<int>>(
+      key: ValueKey('score-${appState.dataGeneration}'),
       future: Future.wait([appState.disciplineScore(), appState.lifetimeMissedHours()]),
       builder: (context, snapshot) {
         final score = snapshot.data?[0] ?? 70;

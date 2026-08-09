@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../models/category.dart';
@@ -64,7 +65,25 @@ class SettingsScreen extends StatelessWidget {
                       title: Text(cat.name),
                       trailing: IconButton(
                         icon: const Icon(Icons.delete_outline, size: 20),
-                        onPressed: () => appState.deleteCategory(cat.id!),
+                        onPressed: () async {
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: Text('Delete "${cat.name}"?'),
+                              content: const Text(
+                                'This also permanently removes every hour that was logged under this category. '
+                                'Those slots will become empty again (not shown as "Unknown").',
+                              ),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                                FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+                              ],
+                            ),
+                          );
+                          if (confirmed == true && context.mounted) {
+                            await appState.deleteCategory(cat.id!);
+                          }
+                        },
                       ),
                     )),
                 const SizedBox(height: 8),
@@ -102,13 +121,13 @@ class SettingsScreen extends StatelessWidget {
               children: [
                 Text(
                   'History is kept indefinitely by default — a year or more of data is fine and only helps long-term patterns. '
-                  'If you ever want to trim very old data, you can do it manually below; nothing is deleted automatically.',
+                  'If you ever want to trim data, pick any date range between the day you started using the app and yesterday.',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
                   icon: const Icon(Icons.delete_sweep_outlined),
-                  label: const Text('Delete data older than...'),
+                  label: const Text('Delete data by date range…'),
                   onPressed: () => _showDeleteOldDataDialog(context),
                 ),
               ],
@@ -130,28 +149,71 @@ class SettingsScreen extends StatelessWidget {
           builder: (ctx, setState) {
             return AlertDialog(
               title: const Text('New category'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: controller,
-                    decoration: const InputDecoration(labelText: 'Name'),
-                  ),
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 8,
-                    children: kCategoryPalette.map((c) {
-                      return GestureDetector(
-                        onTap: () => setState(() => selectedColor = c),
-                        child: CircleAvatar(
-                          backgroundColor: Color(c),
-                          radius: selectedColor == c ? 16 : 12,
-                          child: selectedColor == c ? const Icon(Icons.check, size: 14, color: Colors.white) : null,
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: controller,
+                      decoration: const InputDecoration(labelText: 'Name'),
+                      autofocus: true,
+                    ),
+                    const SizedBox(height: 16),
+                    Text('Colour', style: Theme.of(ctx).textTheme.labelLarge),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        ...kCategoryPalette.map((c) {
+                          final selected = selectedColor == c;
+                          return GestureDetector(
+                            onTap: () => setState(() => selectedColor = c),
+                            child: CircleAvatar(
+                              backgroundColor: Color(c),
+                              radius: selected ? 16 : 13,
+                              child: selected
+                                  ? const Icon(Icons.check, size: 14, color: Colors.white)
+                                  : null,
+                            ),
+                          );
+                        }),
+                        // Custom colour entry point
+                        GestureDetector(
+                          onTap: () async {
+                            final custom = await _showCustomColorPicker(ctx, Color(selectedColor));
+                            if (custom != null) {
+                              // Color.value is the ARGB int used by TrackCategory.
+                              // ignore: deprecated_member_use
+                              setState(() => selectedColor = custom.value);
+                            }
+                          },
+                          child: CircleAvatar(
+                            radius: 13,
+                            backgroundColor: Theme.of(ctx).colorScheme.surfaceContainerHighest,
+                            child: Icon(
+                              Icons.palette_outlined,
+                              size: 16,
+                              color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
                         ),
-                      );
-                    }).toList(),
-                  ),
-                ],
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        CircleAvatar(backgroundColor: Color(selectedColor), radius: 10),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Selected',
+                          style: Theme.of(ctx).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
               actions: [
                 TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
@@ -171,52 +233,126 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _showDeleteOldDataDialog(BuildContext context) {
-    final options = <String, Duration>{
-      'Older than 6 months': const Duration(days: 182),
-      'Older than 1 year': const Duration(days: 365),
-      'Older than 2 years': const Duration(days: 730),
-    };
+  /// Simple HSV colour picker — no extra package needed.
+  Future<Color?> _showCustomColorPicker(BuildContext context, Color initial) {
+    var hue = HSVColor.fromColor(initial).hue;
+    var saturation = HSVColor.fromColor(initial).saturation.clamp(0.2, 1.0);
+    var value = HSVColor.fromColor(initial).value.clamp(0.3, 1.0);
 
-    showDialog(
+    return showDialog<Color>(
       context: context,
       builder: (ctx) {
-        return SimpleDialog(
-          title: const Text('Delete old data'),
-          children: options.entries.map((entry) {
-            return SimpleDialogOption(
-              onPressed: () async {
-                Navigator.pop(ctx);
-                final cutoff = DateTime.now().subtract(entry.value);
-                final confirmed = await showDialog<bool>(
-                  context: context,
-                  builder: (ctx2) => AlertDialog(
-                    title: const Text('Are you sure?'),
-                    content: Text(
-                      'This permanently deletes all entries before ${cutoff.toLocal().toString().split(' ').first}. '
-                      'This can\'t be undone.',
+        return StatefulBuilder(
+          builder: (ctx, setState) {
+            final current = HSVColor.fromAHSV(1, hue, saturation, value).toColor();
+            return AlertDialog(
+              title: const Text('Custom colour'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    height: 48,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: current,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Theme.of(ctx).dividerColor),
                     ),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx2, false), child: const Text('Cancel')),
-                      FilledButton(onPressed: () => Navigator.pop(ctx2, true), child: const Text('Delete')),
-                    ],
                   ),
-                );
-                if (confirmed == true && context.mounted) {
-                  final count = await context.read<AppState>().deleteDataBefore(cutoff);
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Deleted $count old entries.')),
-                    );
-                  }
-                }
-              },
-              child: Text(entry.key),
+                  const SizedBox(height: 16),
+                  Text('Hue', style: Theme.of(ctx).textTheme.labelMedium),
+                  Slider(
+                    value: hue,
+                    min: 0,
+                    max: 360,
+                    onChanged: (v) => setState(() => hue = v),
+                  ),
+                  Text('Saturation', style: Theme.of(ctx).textTheme.labelMedium),
+                  Slider(
+                    value: saturation,
+                    min: 0.15,
+                    max: 1,
+                    onChanged: (v) => setState(() => saturation = v),
+                  ),
+                  Text('Brightness', style: Theme.of(ctx).textTheme.labelMedium),
+                  Slider(
+                    value: value,
+                    min: 0.25,
+                    max: 1,
+                    onChanged: (v) => setState(() => value = v),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                FilledButton(
+                  onPressed: () => Navigator.pop(ctx, current),
+                  child: const Text('Use colour'),
+                ),
+              ],
             );
-          }).toList(),
+          },
         );
       },
     );
+  }
+
+  void _showDeleteOldDataDialog(BuildContext context) async {
+    final appState = context.read<AppState>();
+    final today = DateTime.now();
+    // Deletion window is only between the day the user started using the app
+    // and yesterday (today is still editable / in progress).
+    final firstDate = DateTime(appState.installDate.year, appState.installDate.month, appState.installDate.day);
+    final lastDate = DateTime(today.year, today.month, today.day).subtract(const Duration(days: 1));
+
+    if (lastDate.isBefore(firstDate)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No past data to delete yet.')),
+        );
+      }
+      return;
+    }
+
+    final range = await showDateRangePicker(
+      context: context,
+      firstDate: firstDate,
+      lastDate: lastDate,
+      initialDateRange: DateTimeRange(start: firstDate, end: lastDate),
+      helpText: 'Select range to delete',
+      saveText: 'Continue',
+    );
+
+    if (range == null || !context.mounted) return;
+
+    final fmt = DateFormat('yyyy-MM-dd');
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Are you sure?'),
+        content: Text(
+          'This permanently deletes every logged hour from '
+          '${fmt.format(range.start)} through ${fmt.format(range.end)} inclusive. '
+          'This can\'t be undone.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      final count = await appState.deleteDataInRange(range.start, range.end);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Deleted $count entries.')),
+        );
+      }
+    }
   }
 }
 

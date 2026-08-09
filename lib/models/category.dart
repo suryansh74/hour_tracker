@@ -34,8 +34,8 @@ class TrackCategory {
   }
 }
 
-// Sensible starting palette + default categories so the app isn't empty
-// on first launch.
+// Expanded starting palette + default categories so the app isn't empty
+// on first launch. Users can also pick a fully custom color.
 const List<int> kCategoryPalette = [
   0xFF3B82F6, // blue
   0xFF10B981, // green
@@ -45,6 +45,18 @@ const List<int> kCategoryPalette = [
   0xFFEC4899, // pink
   0xFF14B8A6, // teal
   0xFF6B7280, // gray
+  0xFF0EA5E9, // sky
+  0xFF22C55E, // lime-green
+  0xFFF97316, // orange
+  0xFFA855F7, // purple
+  0xFF06B6D4, // cyan
+  0xFFE11D48, // rose
+  0xFF84CC16, // lime
+  0xFF64748B, // slate
+  0xFFD946EF, // fuchsia
+  0xFF78716C, // stone
+  0xFF4F46E5, // indigo
+  0xFFCA8A04, // yellow
 ];
 
 List<TrackCategory> defaultCategories() => [

@@ -21,6 +21,10 @@ class AppState extends ChangeNotifier {
   ThemeMode themeMode = ThemeMode.system;
   DateTime installDate = DateTime.now();
 
+  /// Incremented whenever entries are bulk-deleted (category wipe or old-data
+  /// cleanup) so screens that use FutureBuilder can detect stale futures.
+  int dataGeneration = 0;
+
   bool _initialized = false;
   bool get initialized => _initialized;
 
@@ -134,7 +138,12 @@ class AppState extends ChangeNotifier {
 
   Future<void> deleteCategory(int id) async {
     await _db.deleteCategory(id);
+    // Entries that used this category were removed in the DB layer.
+    // Refresh today's map so the home screen / dashboard drop them immediately.
+    await _loadTodaysEntries();
     categories = await _db.getCategories();
+    // Bump a generation so FutureBuilders on dashboard re-run their queries.
+    dataGeneration++;
     notifyListeners();
   }
 
@@ -264,6 +273,21 @@ class AppState extends ChangeNotifier {
   /// Deletes all entries strictly before [cutoff]. Returns rows deleted.
   Future<int> deleteDataBefore(DateTime cutoff) async {
     final count = await _db.deleteEntriesBefore(_dateFmt.format(cutoff));
+    await _loadTodaysEntries();
+    dataGeneration++;
+    notifyListeners();
+    return count;
+  }
+
+  /// Deletes all entries whose date falls in [start]..=[end] (inclusive).
+  /// Returns rows deleted. Used by the calendar-based cleanup UI.
+  Future<int> deleteDataInRange(DateTime start, DateTime end) async {
+    final count = await _db.deleteEntriesInRange(
+      _dateFmt.format(start),
+      _dateFmt.format(end),
+    );
+    await _loadTodaysEntries();
+    dataGeneration++;
     notifyListeners();
     return count;
   }

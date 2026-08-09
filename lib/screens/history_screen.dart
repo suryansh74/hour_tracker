@@ -15,6 +15,7 @@ class HistoryScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('History')),
       body: FutureBuilder<List<String>>(
+        key: ValueKey('history-${appState.dataGeneration}'),
         future: appState.historyDateKeys(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {

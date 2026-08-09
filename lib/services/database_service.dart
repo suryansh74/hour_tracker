@@ -76,6 +76,9 @@ class DatabaseService {
 
   Future<void> deleteCategory(int id) async {
     final db = await database;
+    // Remove all hour entries that belonged to this category so they
+    // don't linger as "Unknown" on the dashboard / history.
+    await db.delete('entries', where: 'categoryId = ?', whereArgs: [id]);
     await db.delete('categories', where: 'id = ?', whereArgs: [id]);
   }
 
@@ -119,6 +122,17 @@ class DatabaseService {
   Future<int> deleteEntriesBefore(String cutoffDate) async {
     final db = await database;
     return db.delete('entries', where: 'date < ?', whereArgs: [cutoffDate]);
+  }
+
+  /// Deletes entries whose date is between [startDate] and [endDate] inclusive
+  /// (yyyy-MM-dd). Used by the flexible date-range cleanup UI.
+  Future<int> deleteEntriesInRange(String startDate, String endDate) async {
+    final db = await database;
+    return db.delete(
+      'entries',
+      where: 'date >= ? AND date <= ?',
+      whereArgs: [startDate, endDate],
+    );
   }
 
   // ---------------- Settings (key-value) ----------------
