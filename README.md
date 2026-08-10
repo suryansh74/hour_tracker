@@ -12,11 +12,11 @@ No account. No cloud. Everything stays on your phone.
 ## Try it on Android
 
 **Direct download (latest APK):**  
-👉 **[Download Hour Tracker v1.0.2](https://github.com/suryansh74/hour_tracker/releases/download/v1.0.2/app-release.apk)**
+👉 **[Download Hour Tracker v1.0.3](https://github.com/suryansh74/hour_tracker/releases/download/v1.0.3/app-release.apk)**
 
 Or open the [Releases page](https://github.com/suryansh74/hour_tracker/releases/latest) and tap **`app-release.apk`** under **Assets**.
 
-> **Use v1.0.2 or newer.** Older builds could freeze on load or miss hourly notification sounds.
+> **Use v1.0.3 or newer.** Fixes startup freezes and makes hourly notification beeps reliable on Android.
 
 ### How to install
 1. Download the APK on your Android phone  
@@ -68,7 +68,7 @@ Requires [Flutter](https://docs.flutter.dev/get-started/install) 3.x.
 
 ## Links
 
-- **Android APK (v1.0.2):** [Download](https://github.com/suryansh74/hour_tracker/releases/download/v1.0.2/app-release.apk)  
+- **Android APK (v1.0.3):** [Download](https://github.com/suryansh74/hour_tracker/releases/download/v1.0.3/app-release.apk)  
 - **Latest release:** https://github.com/suryansh74/hour_tracker/releases/latest  
 - **All releases:** https://github.com/suryansh74/hour_tracker/releases  
 - **Source code:** this repository  
