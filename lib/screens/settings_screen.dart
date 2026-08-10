@@ -9,6 +9,12 @@ import '../services/notification_service.dart';
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
+  static String intervalChipLabel(int minutes) {
+    if (minutes < 60) return '$minutes min';
+    if (minutes == 60) return '1 hour';
+    return '${minutes ~/ 60} hours';
+  }
+
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
@@ -35,7 +41,7 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Beeps fire every hour between these times. No beeps during sleep.',
+                  'Beeps fire between these times at your chosen interval. No beeps during sleep.',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
@@ -59,7 +65,7 @@ class SettingsScreen extends StatelessWidget {
                   children: [
                     for (final minutes in [1, 5, 15, 30, 60, 120])
                       ChoiceChip(
-                        label: Text(_intervalChipLabel(minutes)),
+                        label: Text(SettingsScreen.intervalChipLabel(minutes)),
                         selected: appState.beepIntervalMinutes == minutes,
                         onSelected: (_) => appState.updateBeepInterval(minutes),
                       ),
