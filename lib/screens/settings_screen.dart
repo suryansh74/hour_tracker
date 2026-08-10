@@ -122,29 +122,6 @@ class SettingsScreen extends StatelessWidget {
                     }
                   },
                 ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.schedule),
-                  label: const Text('Reschedule hourly beeps'),
-                  onPressed: () async {
-                    final app = context.read<AppState>();
-                    await NotificationService.instance.requestPermissions();
-                    final n = await NotificationService.instance.scheduleBeeps(
-                      wakeHour: app.wakeHour,
-                      sleepHour: app.sleepHour,
-                      intervalMinutes: 60,
-                    );
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Scheduled $n hourly beeps (${app.wakeHour}:00–${app.sleepHour}:00)',
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                ),
               ],
             ),
           ),
