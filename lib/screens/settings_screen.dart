@@ -9,11 +9,6 @@ import '../services/notification_service.dart';
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
-  static String intervalChipLabel(int minutes) {
-    if (minutes < 60) return '$minutes min';
-    if (minutes == 60) return '1 hour';
-    return '${minutes ~/ 60} hours';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,44 +36,7 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Beeps fire between these times at your chosen interval. No beeps during sleep.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          _SectionCard(
-            title: 'Beep interval',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'How often Hour Tracker reminds you inside your active hours '
-                  '(${appState.wakeHour}:00–${appState.sleepHour}:00).',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final minutes in [15, 30, 60, 120])
-                      ChoiceChip(
-                        label: Text(SettingsScreen.intervalChipLabel(minutes)),
-                        selected: appState.beepIntervalMinutes == minutes,
-                        onSelected: (_) => appState.updateBeepInterval(minutes),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Selected: ${appState.beepIntervalLabel}',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Normal use is every 1 hour. Shorter intervals (15–30 min) are optional.',
+                  'Hourly beeps fire between these times. No beeps during sleep.',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
@@ -145,16 +103,12 @@ class SettingsScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Hourly beeps need notification permission and, on many phones, '
-                  '"Alarms & reminders" (exact alarms). Also turn off battery optimization for this app.',
+                  'Beeps once per hour between your wake and sleep times. '
+                  'On many phones, allow notifications and "Alarms & reminders", '
+                  'and turn off battery optimization for this app.',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 10),
-                OutlinedButton(
-                  onPressed: () => NotificationService.instance.requestPermissions(),
-                  child: const Text('Re-check notification permissions'),
-                ),
-                const SizedBox(height: 8),
                 OutlinedButton.icon(
                   icon: const Icon(Icons.notifications_active_outlined),
                   label: const Text('Send test notification now'),
@@ -171,29 +125,46 @@ class SettingsScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
                   icon: const Icon(Icons.schedule),
-                  label: const Text('Reschedule beeps now'),
+                  label: const Text('Reschedule hourly beeps'),
                   onPressed: () async {
                     final app = context.read<AppState>();
                     await NotificationService.instance.requestPermissions();
                     final n = await NotificationService.instance.scheduleBeeps(
                       wakeHour: app.wakeHour,
                       sleepHour: app.sleepHour,
-                      intervalMinutes: app.beepIntervalMinutes,
+                      intervalMinutes: 60,
                     );
-                    final pending = await NotificationService.instance.pendingNotifications();
-                    final intervalPending = pending.where((p) => p.id >= 2000 && p.id <= 2299).length;
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Scheduled $n · pending $intervalPending · ${app.beepIntervalLabel} '
-                            '(${app.wakeHour}:00–${app.sleepHour}:00)',
+                            'Scheduled $n hourly beeps (${app.wakeHour}:00–${app.sleepHour}:00)',
                           ),
-                          duration: const Duration(seconds: 4),
                         ),
                       );
                     }
                   },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _SectionCard(
+            title: 'Data',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'History is kept indefinitely by default. '
+                  'You can permanently delete a date range between the day you started '
+                  'using the app and yesterday.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.delete_sweep_outlined),
+                  label: const Text('Delete data by date range…'),
+                  onPressed: () => _showDeleteOldDataDialog(context),
                 ),
               ],
             ),
