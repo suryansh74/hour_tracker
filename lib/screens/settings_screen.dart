@@ -63,7 +63,7 @@ class SettingsScreen extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    for (final minutes in [1, 5, 15, 30, 60, 120])
+                    for (final minutes in [15, 30, 60, 120])
                       ChoiceChip(
                         label: Text(SettingsScreen.intervalChipLabel(minutes)),
                         selected: appState.beepIntervalMinutes == minutes,
@@ -78,8 +78,7 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Uses the same reliable alarm style as the minute tests. '
-                  'Short intervals (1–5 min) are great for testing; use 60 min for normal daily use.',
+                  'Normal use is every 1 hour. Shorter intervals (15–30 min) are optional.',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
@@ -195,104 +194,6 @@ class SettingsScreen extends StatelessWidget {
                       );
                     }
                   },
-                ),
-                const Divider(height: 28),
-                Text(
-                  'Debug — per-minute timer',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Schedules one-shot beeps for the next few minutes so you can verify '
-                  'scheduled alarms without waiting an hour. (debug branch only)',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.timer_outlined),
-                  label: const Text('Beep every minute × 5'),
-                  onPressed: () async {
-                    await NotificationService.instance.requestPermissions();
-                    final n = await NotificationService.instance.scheduleMinuteTestBeeps(count: 5);
-                    final exact = await NotificationService.instance.canScheduleExactAlarms();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Scheduled $n minute-tests. Exact alarms: ${exact ? "YES" : "NO — enable Alarms & reminders"}',
-                          ),
-                          duration: const Duration(seconds: 5),
-                        ),
-                      );
-                    }
-                  },
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.timer),
-                  label: const Text('Beep every minute × 10'),
-                  onPressed: () async {
-                    await NotificationService.instance.requestPermissions();
-                    final n = await NotificationService.instance.scheduleMinuteTestBeeps(count: 10);
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Scheduled $n minute-tests — wait up to 10 min')),
-                      );
-                    }
-                  },
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.timer_off_outlined),
-                  label: const Text('Cancel minute tests'),
-                  onPressed: () async {
-                    await NotificationService.instance.cancelMinuteTestBeeps();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Minute tests cancelled')),
-                      );
-                    }
-                  },
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.list_alt),
-                  label: const Text('Show pending notification count'),
-                  onPressed: () async {
-                    final pending = await NotificationService.instance.pendingNotifications();
-                    final interval = pending.where((p) => p.id >= 2000 && p.id <= 2299).length;
-                    final minute = pending.where((p) => p.id >= 1001 && p.id <= 1099).length;
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Pending: ${pending.length} total · interval=$interval · minute-tests=$minute',
-                          ),
-                          duration: const Duration(seconds: 5),
-                        ),
-                      );
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          _SectionCard(
-            title: 'Data',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'History is kept indefinitely by default — a year or more of data is fine and only helps long-term patterns. '
-                  'If you ever want to trim data, pick any date range between the day you started using the app and yesterday.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.delete_sweep_outlined),
-                  label: const Text('Delete data by date range…'),
-                  onPressed: () => _showDeleteOldDataDialog(context),
                 ),
               ],
             ),

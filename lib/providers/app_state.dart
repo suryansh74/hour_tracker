@@ -42,6 +42,11 @@ class AppState extends ChangeNotifier {
 
     final interval = await _db.getSetting('beepIntervalMinutes');
     beepIntervalMinutes = interval != null ? int.parse(interval) : 60;
+    // Drop old debug intervals (1–5 min) so production defaults to hourly.
+    if (beepIntervalMinutes < 15) {
+      beepIntervalMinutes = 60;
+      await _db.setSetting('beepIntervalMinutes', '60');
+    }
 
     final prefs = await SharedPreferences.getInstance();
     final themeStr = prefs.getString('themeMode');

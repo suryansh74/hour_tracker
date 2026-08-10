@@ -12,7 +12,6 @@ import 'package:timezone/timezone.dart' as tz;
 ///
 /// Notification ids:
 /// - 2000–2299 → interval beeps (rolling window)
-/// - 1001–1099 → extra debug minute tests
 /// - 999 → immediate test
 class NotificationService {
   NotificationService._internal();
@@ -25,8 +24,6 @@ class NotificationService {
 
   static const int _intervalIdStart = 2000;
   static const int _intervalIdEnd = 2299;
-  static const int _minuteTestIdStart = 1001;
-  static const int _minuteTestIdEnd = 1099;
 
   /// Max one-shots to keep pending (Android has limits; 48 is safe).
   static const int maxPendingBeeps = 48;
@@ -283,41 +280,6 @@ class NotificationService {
     }
     // Overnight, e.g. wake 22 sleep 6 → active if t >= 22:00 OR t < 06:00
     return minutes >= wake || minutes < sleep;
-  }
-
-  // ---------------------------------------------------------------------------
-  // Debug minute tests (keep for QA)
-  // ---------------------------------------------------------------------------
-
-  Future<int> scheduleMinuteTestBeeps({int count = 5}) async {
-    await cancelMinuteTestBeeps();
-    final exactOk = await canScheduleExactAlarms();
-    final mode = exactOk ? AndroidScheduleMode.alarmClock : AndroidScheduleMode.inexactAllowWhileIdle;
-    final now = tz.TZDateTime.now(tz.local);
-    var scheduled = 0;
-    final max = count.clamp(1, _minuteTestIdEnd - _minuteTestIdStart + 1);
-    for (var i = 1; i <= max; i++) {
-      final when = now.add(Duration(minutes: i));
-      final id = _minuteTestIdStart + i - 1;
-      final ok = await _zonedOneShot(
-        id: id,
-        title: 'Minute test #$i',
-        body: 'Debug one-shot at ${when.hour.toString().padLeft(2, '0')}:${when.minute.toString().padLeft(2, '0')}',
-        when: when,
-        mode: mode,
-        payload: 'minute:$i',
-      );
-      if (ok) scheduled++;
-    }
-    return scheduled;
-  }
-
-  Future<void> cancelMinuteTestBeeps() async {
-    for (var id = _minuteTestIdStart; id <= _minuteTestIdEnd; id++) {
-      try {
-        await _plugin.cancel(id);
-      } catch (_) {}
-    }
   }
 
   Future<List<PendingNotificationRequest>> pendingNotifications() async {
