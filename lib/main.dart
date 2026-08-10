@@ -48,9 +48,10 @@ class _HourTrackerAppState extends State<HourTrackerApp> with WidgetsBindingObse
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed && appState.initialized) {
-      NotificationService.instance.scheduleDailyBeeps(
+      NotificationService.instance.scheduleBeeps(
         wakeHour: appState.wakeHour,
         sleepHour: appState.sleepHour,
+        intervalMinutes: appState.beepIntervalMinutes,
       );
     }
   }
@@ -65,9 +66,10 @@ class _HourTrackerAppState extends State<HourTrackerApp> with WidgetsBindingObse
 
     try {
       await NotificationService.instance.requestPermissions();
-      await NotificationService.instance.scheduleDailyBeeps(
+      await NotificationService.instance.scheduleBeeps(
         wakeHour: appState.wakeHour,
         sleepHour: appState.sleepHour,
+        intervalMinutes: appState.beepIntervalMinutes,
       );
     } catch (e, st) {
       debugPrint('Notification setup failed: $e\n$st');

@@ -43,6 +43,44 @@ class SettingsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _SectionCard(
+            title: 'Beep interval',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'How often Hour Tracker reminds you inside your active hours '
+                  '(${appState.wakeHour}:00–${appState.sleepHour}:00).',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final minutes in [1, 5, 15, 30, 60, 120])
+                      ChoiceChip(
+                        label: Text(_intervalChipLabel(minutes)),
+                        selected: appState.beepIntervalMinutes == minutes,
+                        onSelected: (_) => appState.updateBeepInterval(minutes),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Selected: ${appState.beepIntervalLabel}',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Uses the same reliable alarm style as the minute tests. '
+                  'Short intervals (1–5 min) are great for testing; use 60 min for normal daily use.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _SectionCard(
             title: 'Appearance',
             child: SegmentedButton<ThemeMode>(
               segments: const [
@@ -128,22 +166,25 @@ class SettingsScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 OutlinedButton.icon(
                   icon: const Icon(Icons.schedule),
-                  label: const Text('Reschedule hourly beeps'),
+                  label: const Text('Reschedule beeps now'),
                   onPressed: () async {
                     final app = context.read<AppState>();
                     await NotificationService.instance.requestPermissions();
-                    await NotificationService.instance.scheduleDailyBeeps(
+                    final n = await NotificationService.instance.scheduleBeeps(
                       wakeHour: app.wakeHour,
                       sleepHour: app.sleepHour,
+                      intervalMinutes: app.beepIntervalMinutes,
                     );
                     final pending = await NotificationService.instance.pendingNotifications();
-                    final hourly = pending.where((p) => p.id >= 0 && p.id < 24).length;
+                    final intervalPending = pending.where((p) => p.id >= 2000 && p.id <= 2299).length;
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Hourly beeps: $hourly pending (${app.wakeHour}:00–${app.sleepHour}:00)',
+                            'Scheduled $n · pending $intervalPending · ${app.beepIntervalLabel} '
+                            '(${app.wakeHour}:00–${app.sleepHour}:00)',
                           ),
+                          duration: const Duration(seconds: 4),
                         ),
                       );
                     }
@@ -213,13 +254,13 @@ class SettingsScreen extends StatelessWidget {
                   label: const Text('Show pending notification count'),
                   onPressed: () async {
                     final pending = await NotificationService.instance.pendingNotifications();
-                    final hourly = pending.where((p) => p.id >= 0 && p.id < 24).length;
+                    final interval = pending.where((p) => p.id >= 2000 && p.id <= 2299).length;
                     final minute = pending.where((p) => p.id >= 1001 && p.id <= 1099).length;
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Pending: ${pending.length} total · hourly=$hourly · minute-tests=$minute',
+                            'Pending: ${pending.length} total · interval=$interval · minute-tests=$minute',
                           ),
                           duration: const Duration(seconds: 5),
                         ),

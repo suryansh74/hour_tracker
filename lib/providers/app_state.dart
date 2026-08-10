@@ -18,6 +18,8 @@ class AppState extends ChangeNotifier {
   Map<int, HourEntry> todaysEntries = {}; // hour -> entry
   int wakeHour = 6;
   int sleepHour = 23;
+  /// How often to beep inside the active window (minutes). Default 60 = hourly.
+  int beepIntervalMinutes = 60;
   ThemeMode themeMode = ThemeMode.system;
   DateTime installDate = DateTime.now();
 
@@ -37,6 +39,9 @@ class AppState extends ChangeNotifier {
     final sleep = await _db.getSetting('sleepHour');
     wakeHour = wake != null ? int.parse(wake) : 6;
     sleepHour = sleep != null ? int.parse(sleep) : 23;
+
+    final interval = await _db.getSetting('beepIntervalMinutes');
+    beepIntervalMinutes = interval != null ? int.parse(interval) : 60;
 
     final prefs = await SharedPreferences.getInstance();
     final themeStr = prefs.getString('themeMode');
@@ -118,12 +123,35 @@ class AppState extends ChangeNotifier {
     sleepHour = newSleep;
     await _db.setSetting('wakeHour', newWake.toString());
     await _db.setSetting('sleepHour', newSleep.toString());
-    try {
-      await NotificationService.instance.scheduleDailyBeeps(wakeHour: wakeHour, sleepHour: sleepHour);
-    } catch (_) {
-      // Non-fatal: UI still updates wake/sleep even if OS blocks alarms.
-    }
+    await _rescheduleBeeps();
     notifyListeners();
+  }
+
+  Future<void> updateBeepInterval(int minutes) async {
+    beepIntervalMinutes = minutes.clamp(1, 24 * 60);
+    await _db.setSetting('beepIntervalMinutes', beepIntervalMinutes.toString());
+    await _rescheduleBeeps();
+    notifyListeners();
+  }
+
+  Future<void> _rescheduleBeeps() async {
+    try {
+      await NotificationService.instance.scheduleBeeps(
+        wakeHour: wakeHour,
+        sleepHour: sleepHour,
+        intervalMinutes: beepIntervalMinutes,
+      );
+    } catch (_) {
+      // Non-fatal
+    }
+  }
+
+  String get beepIntervalLabel {
+    final m = beepIntervalMinutes;
+    if (m < 60) return 'Every $m min';
+    if (m == 60) return 'Every 1 hour';
+    if (m % 60 == 0) return 'Every ${m ~/ 60} hours';
+    return 'Every $m min';
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
