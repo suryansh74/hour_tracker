@@ -136,12 +136,92 @@ class SettingsScreen extends StatelessWidget {
                       wakeHour: app.wakeHour,
                       sleepHour: app.sleepHour,
                     );
+                    final pending = await NotificationService.instance.pendingNotifications();
+                    final hourly = pending.where((p) => p.id >= 0 && p.id < 24).length;
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Rescheduled beeps for ${app.wakeHour}:00–${app.sleepHour}:00',
+                            'Hourly beeps: $hourly pending (${app.wakeHour}:00–${app.sleepHour}:00)',
                           ),
+                        ),
+                      );
+                    }
+                  },
+                ),
+                const Divider(height: 28),
+                Text(
+                  'Debug — per-minute timer',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Schedules one-shot beeps for the next few minutes so you can verify '
+                  'scheduled alarms without waiting an hour. (debug branch only)',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.timer_outlined),
+                  label: const Text('Beep every minute × 5'),
+                  onPressed: () async {
+                    await NotificationService.instance.requestPermissions();
+                    final n = await NotificationService.instance.scheduleMinuteTestBeeps(count: 5);
+                    final exact = await NotificationService.instance.canScheduleExactAlarms();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Scheduled $n minute-tests. Exact alarms: ${exact ? "YES" : "NO — enable Alarms & reminders"}',
+                          ),
+                          duration: const Duration(seconds: 5),
+                        ),
+                      );
+                    }
+                  },
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.timer),
+                  label: const Text('Beep every minute × 10'),
+                  onPressed: () async {
+                    await NotificationService.instance.requestPermissions();
+                    final n = await NotificationService.instance.scheduleMinuteTestBeeps(count: 10);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Scheduled $n minute-tests — wait up to 10 min')),
+                      );
+                    }
+                  },
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.timer_off_outlined),
+                  label: const Text('Cancel minute tests'),
+                  onPressed: () async {
+                    await NotificationService.instance.cancelMinuteTestBeeps();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Minute tests cancelled')),
+                      );
+                    }
+                  },
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.list_alt),
+                  label: const Text('Show pending notification count'),
+                  onPressed: () async {
+                    final pending = await NotificationService.instance.pendingNotifications();
+                    final hourly = pending.where((p) => p.id >= 0 && p.id < 24).length;
+                    final minute = pending.where((p) => p.id >= 1001 && p.id <= 1099).length;
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Pending: ${pending.length} total · hourly=$hourly · minute-tests=$minute',
+                          ),
+                          duration: const Duration(seconds: 5),
                         ),
                       );
                     }
