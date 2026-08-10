@@ -102,13 +102,50 @@ class SettingsScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'If beeps stop arriving, re-check permissions (Android may disable exact alarms after updates).',
+                  'Hourly beeps need notification permission and, on many phones, '
+                  '"Alarms & reminders" (exact alarms). Also turn off battery optimization for this app.',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 const SizedBox(height: 10),
                 OutlinedButton(
                   onPressed: () => NotificationService.instance.requestPermissions(),
                   child: const Text('Re-check notification permissions'),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.notifications_active_outlined),
+                  label: const Text('Send test notification now'),
+                  onPressed: () async {
+                    await NotificationService.instance.requestPermissions();
+                    await NotificationService.instance.showTestNotification();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Test notification sent — check sound/banner')),
+                      );
+                    }
+                  },
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.schedule),
+                  label: const Text('Reschedule hourly beeps'),
+                  onPressed: () async {
+                    final app = context.read<AppState>();
+                    await NotificationService.instance.requestPermissions();
+                    await NotificationService.instance.scheduleDailyBeeps(
+                      wakeHour: app.wakeHour,
+                      sleepHour: app.sleepHour,
+                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Rescheduled beeps for ${app.wakeHour}:00–${app.sleepHour}:00',
+                          ),
+                        ),
+                      );
+                    }
+                  },
                 ),
               ],
             ),

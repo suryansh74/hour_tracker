@@ -14,19 +14,20 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
 
+  /// Bump this if channel sound/importance must change — Android freezes
+  /// channel settings after first create.
+  static const _channelId = 'hourly_beep_v2';
+  static const _channelName = 'Hourly Check-in';
+
   /// Called when a notification is tapped. Set from main() so the UI layer
   /// can navigate to the correct hour's log sheet. Receives the tapped hour.
   void Function(int hour)? onBeepTapped;
 
   Future<void> init() async {
     tz_data.initializeTimeZones();
-    // Prefer device local offset; fall back to Asia/Kolkata if lookup fails.
     try {
-      final name = DateTime.now().timeZoneName;
-      // timezone package needs an IANA id; use a safe default for India users
-      // and let the scheduled wall-clock time follow local device time via TZDateTime.now.
+      // Device-local wall clock for India-default installs; safe fallback UTC.
       tz.setLocalLocation(tz.getLocation('Asia/Kolkata'));
-      debugPrint('Timezone set (device reports: $name)');
     } catch (_) {
       tz.setLocalLocation(tz.UTC);
     }
@@ -48,12 +49,15 @@ class NotificationService {
     );
 
     const channel = AndroidNotificationChannel(
-      'hourly_beep',
-      'Hourly Check-in',
+      _channelId,
+      _channelName,
       description: 'Reminds you every active hour to log what you did.',
       importance: Importance.max,
       playSound: true,
+      enableVibration: true,
+      showBadge: true,
     );
+
     await _plugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
@@ -80,6 +84,37 @@ class NotificationService {
     }
   }
 
+  Future<bool> canScheduleExactAlarms() async {
+    final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    try {
+      return await android?.canScheduleExactNotifications() ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Immediate test notification so the user can verify sound + permission.
+  Future<void> showTestNotification() async {
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        _channelId,
+        _channelName,
+        channelDescription: 'Reminds you every active hour to log what you did.',
+        importance: Importance.max,
+        priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
+      ),
+      iOS: DarwinNotificationDetails(presentSound: true, presentAlert: true),
+    );
+    await _plugin.show(
+      999,
+      'Hour Tracker test',
+      'If you hear this, notifications are working.',
+      details,
+    );
+  }
+
   /// Reschedules all daily beeps to fire once per hour between [wakeHour]
   /// (inclusive) and [sleepHour] (exclusive) every day, indefinitely.
   Future<void> scheduleDailyBeeps({required int wakeHour, required int sleepHour}) async {
@@ -93,36 +128,41 @@ class NotificationService {
     if (wakeHour < sleepHour) {
       activeHours.addAll([for (var h = wakeHour; h < sleepHour; h++) h]);
     } else {
-      // Sleep window wraps past midnight (e.g. wake 6, sleep 1am next day).
       activeHours.addAll([for (var h = wakeHour; h < 24; h++) h]);
       activeHours.addAll([for (var h = 0; h < sleepHour; h++) h]);
     }
 
-    // Prefer exact alarms; fall back to inexact if the OS denies exact.
-    var mode = AndroidScheduleMode.exactAllowWhileIdle;
+    final exactOk = await canScheduleExactAlarms();
+    var mode = exactOk ? AndroidScheduleMode.exactAllowWhileIdle : AndroidScheduleMode.inexactAllowWhileIdle;
+    debugPrint('Scheduling ${activeHours.length} beeps; exact=$exactOk mode=$mode wake=$wakeHour sleep=$sleepHour');
 
+    var scheduled = 0;
     for (final hour in activeHours) {
+      final when = _nextInstanceOfHour(hour);
       try {
         await _plugin.zonedSchedule(
           hour,
           'Log your last hour',
           'What were you doing? Tap to record it.',
-          _nextInstanceOfHour(hour),
+          when,
           const NotificationDetails(
             android: AndroidNotificationDetails(
-              'hourly_beep',
-              'Hourly Check-in',
+              _channelId,
+              _channelName,
               channelDescription: 'Reminds you every active hour to log what you did.',
               importance: Importance.max,
               priority: Priority.high,
+              playSound: true,
+              enableVibration: true,
             ),
-            iOS: DarwinNotificationDetails(),
+            iOS: DarwinNotificationDetails(presentSound: true, presentAlert: true),
           ),
           androidScheduleMode: mode,
           uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
           matchDateTimeComponents: DateTimeComponents.time,
           payload: hour.toString(),
         );
+        scheduled++;
       } catch (e) {
         debugPrint('zonedSchedule hour=$hour mode=$mode failed: $e');
         if (mode == AndroidScheduleMode.exactAllowWhileIdle) {
@@ -132,28 +172,32 @@ class NotificationService {
               hour,
               'Log your last hour',
               'What were you doing? Tap to record it.',
-              _nextInstanceOfHour(hour),
+              when,
               const NotificationDetails(
                 android: AndroidNotificationDetails(
-                  'hourly_beep',
-                  'Hourly Check-in',
+                  _channelId,
+                  _channelName,
                   channelDescription: 'Reminds you every active hour to log what you did.',
                   importance: Importance.max,
                   priority: Priority.high,
+                  playSound: true,
+                  enableVibration: true,
                 ),
-                iOS: DarwinNotificationDetails(),
+                iOS: DarwinNotificationDetails(presentSound: true, presentAlert: true),
               ),
               androidScheduleMode: mode,
               uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
               matchDateTimeComponents: DateTimeComponents.time,
               payload: hour.toString(),
             );
+            scheduled++;
           } catch (e2) {
             debugPrint('zonedSchedule fallback hour=$hour failed: $e2');
           }
         }
       }
     }
+    debugPrint('Scheduled $scheduled / ${activeHours.length} hourly notifications');
   }
 
   tz.TZDateTime _nextInstanceOfHour(int hour) {

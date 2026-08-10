@@ -27,28 +27,42 @@ class HourTrackerApp extends StatefulWidget {
   State<HourTrackerApp> createState() => _HourTrackerAppState();
 }
 
-class _HourTrackerAppState extends State<HourTrackerApp> {
+class _HourTrackerAppState extends State<HourTrackerApp> with WidgetsBindingObserver {
   late final AppState appState;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     appState = AppState();
     _bootstrap();
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// Re-schedule when user returns to the app (covers permission granted in Settings).
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && appState.initialized) {
+      NotificationService.instance.scheduleDailyBeeps(
+        wakeHour: appState.wakeHour,
+        sleepHour: appState.sleepHour,
+      );
+    }
+  }
+
   Future<void> _bootstrap() async {
-    // Load local data and show UI as soon as possible.
     try {
       await appState.init();
     } catch (e, st) {
       debugPrint('AppState.init failed: $e\n$st');
-      // Still mark ready so the user is not stuck on a spinner.
       appState.forceInitialized();
     }
 
-    // Permissions + scheduling happen after the first frame — they must
-    // never keep the splash/loader visible.
     try {
       await NotificationService.instance.requestPermissions();
       await NotificationService.instance.scheduleDailyBeeps(
