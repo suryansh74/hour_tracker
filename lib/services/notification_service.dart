@@ -38,7 +38,7 @@ class NotificationService {
       tz.setLocalLocation(tz.UTC);
     }
 
-    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidInit = AndroidInitializationSettings('@drawable/ic_stat_hour_tracker');
     const iosInit = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -113,6 +113,10 @@ class NotificationService {
           priority: Priority.high,
           playSound: true,
           enableVibration: true,
+          // Status bar: white silhouette drawable (required by Android).
+          icon: 'ic_stat_hour_tracker',
+          // Expanded notification: full-colour app launcher.
+          largeIcon: DrawableResourceAndroidBitmap('ic_launcher'),
         ),
         iOS: DarwinNotificationDetails(presentSound: true, presentAlert: true),
       );
