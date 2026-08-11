@@ -40,8 +40,9 @@ class AppState extends ChangeNotifier {
     wakeHour = wake != null ? int.parse(wake) : 6;
     sleepHour = sleep != null ? int.parse(sleep) : 23;
 
-    final interval = await _db.getSetting('beepIntervalMinutes');
-    beepIntervalMinutes = interval != null ? int.parse(interval) : 60;
+    // Production: hourly only. (Flexible intervals are a future feature.)
+    beepIntervalMinutes = 60;
+    await _db.setSetting('beepIntervalMinutes', '60');
 
     final prefs = await SharedPreferences.getInstance();
     final themeStr = prefs.getString('themeMode');
@@ -141,7 +142,7 @@ class AppState extends ChangeNotifier {
       await NotificationService.instance.scheduleBeeps(
         wakeHour: wakeHour,
         sleepHour: sleepHour,
-        intervalMinutes: beepIntervalMinutes,
+        intervalMinutes: 60,
       );
     } catch (e, st) {
       // Never crash the app (MIUI "keeps stopping") because of alarm APIs.

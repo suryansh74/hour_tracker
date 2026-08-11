@@ -44,61 +44,6 @@ class SettingsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           _SectionCard(
-            title: 'Beep interval (release test)',
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Choose how often the scheduled bell rings. '
-                  'Use 1 or 5 min to test a GitHub-release install without waiting an hour. '
-                  'Short intervals ignore wake/sleep so they fire anytime; 1 hour still uses your active hours.',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final minutes in [1, 5, 15, 30, 60])
-                      ChoiceChip(
-                        label: Text(
-                          minutes < 60 ? '$minutes min' : '1 hour',
-                        ),
-                        selected: appState.beepIntervalMinutes == minutes,
-                        onSelected: (_) async {
-                          try {
-                            await appState.updateBeepInterval(minutes);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Scheduled: ${appState.beepIntervalLabel}. '
-                                    'Leave the app and wait to verify.',
-                                  ),
-                                ),
-                              );
-                            }
-                          } catch (e) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Could not schedule: $e')),
-                              );
-                            }
-                          }
-                        },
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Selected: ${appState.beepIntervalLabel}',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          _SectionCard(
             title: 'Appearance',
             child: SegmentedButton<ThemeMode>(
               segments: const [
