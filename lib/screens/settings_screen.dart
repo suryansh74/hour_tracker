@@ -4,8 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../models/category.dart';
 import '../providers/app_state.dart';
-import 'package:permission_handler/permission_handler.dart';
-
 import '../services/notification_service.dart';
 import 'about_screen.dart';
 
@@ -117,21 +115,17 @@ class SettingsScreen extends StatelessWidget {
                   label: const Text('Send test notification now'),
                   onPressed: () async {
                     await NotificationService.instance.requestPermissions();
-                    await NotificationService.instance.showTestNotification();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Test notification sent — check sound/banner')),
-                      );
-                    }
-                  },
-                ),
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.settings_outlined),
-                  label: const Text('Open system notification settings'),
-                  onPressed: () async {
-                    // Opens the app's system settings page (Notifications is one tap away).
-                    await openAppSettings();
+                    final ok = await NotificationService.instance.showTestNotification();
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          ok
+                              ? 'Test notification sent — check sound/banner'
+                              : 'Could not show notification. Allow notifications for Hour Tracker in system settings.',
+                        ),
+                      ),
+                    );
                   },
                 ),
               ],
