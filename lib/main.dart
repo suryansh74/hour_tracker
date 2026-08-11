@@ -51,7 +51,7 @@ class _HourTrackerAppState extends State<HourTrackerApp> with WidgetsBindingObse
       NotificationService.instance.scheduleBeeps(
         wakeHour: appState.wakeHour,
         sleepHour: appState.sleepHour,
-        intervalMinutes: 60,
+        intervalMinutes: appState.beepIntervalMinutes,
       );
     }
   }
@@ -69,7 +69,7 @@ class _HourTrackerAppState extends State<HourTrackerApp> with WidgetsBindingObse
       await NotificationService.instance.scheduleBeeps(
         wakeHour: appState.wakeHour,
         sleepHour: appState.sleepHour,
-        intervalMinutes: 60,
+        intervalMinutes: appState.beepIntervalMinutes,
       );
     } catch (e, st) {
       debugPrint('Notification setup failed: $e\n$st');

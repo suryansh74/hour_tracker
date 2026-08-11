@@ -40,10 +40,8 @@ class AppState extends ChangeNotifier {
     wakeHour = wake != null ? int.parse(wake) : 6;
     sleepHour = sleep != null ? int.parse(sleep) : 23;
 
-    // For now beeps are hourly only (logging slots are still per hour).
-    // Flexible intervals return when Today UI can match non-hour slots.
-    beepIntervalMinutes = 60;
-    await _db.setSetting('beepIntervalMinutes', '60');
+    final interval = await _db.getSetting('beepIntervalMinutes');
+    beepIntervalMinutes = interval != null ? int.parse(interval) : 60;
 
     final prefs = await SharedPreferences.getInstance();
     final themeStr = prefs.getString('themeMode');
@@ -141,7 +139,7 @@ class AppState extends ChangeNotifier {
       await NotificationService.instance.scheduleBeeps(
         wakeHour: wakeHour,
         sleepHour: sleepHour,
-        intervalMinutes: 60,
+        intervalMinutes: beepIntervalMinutes,
       );
     } catch (_) {
       // Non-fatal

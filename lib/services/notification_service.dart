@@ -19,7 +19,7 @@ class NotificationService {
 
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
 
-  static const _channelId = 'hourly_beep_v3';
+  static const _channelId = 'hourly_beep_v4';
   static const _channelName = 'Hourly Check-in';
 
   static const int _intervalIdStart = 2000;
@@ -261,8 +261,11 @@ class NotificationService {
     final result = <tz.TZDateTime>[];
     // Search up to ~3 days ahead so overnight windows still fill.
     final limit = now.add(const Duration(days: 3));
+    // Short intervals (1/5/15/30) are for testing scheduled alarms on release
+    // builds — fire regardless of wake/sleep. Hourly (60+) still respects the window.
+    final respectWindow = intervalMinutes >= 60;
     while (result.length < count && cursor.isBefore(limit)) {
-      if (_isInActiveWindow(cursor, wakeHour, sleepHour)) {
+      if (!respectWindow || _isInActiveWindow(cursor, wakeHour, sleepHour)) {
         result.add(cursor);
       }
       cursor = cursor.add(Duration(minutes: intervalMinutes));
