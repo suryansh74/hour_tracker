@@ -129,9 +129,11 @@ class AppState extends ChangeNotifier {
 
   Future<void> updateBeepInterval(int minutes) async {
     beepIntervalMinutes = minutes.clamp(1, 24 * 60);
-    await _db.setSetting('beepIntervalMinutes', beepIntervalMinutes.toString());
+    notifyListeners(); // UI updates immediately even if scheduling is slow
+    try {
+      await _db.setSetting('beepIntervalMinutes', beepIntervalMinutes.toString());
+    } catch (_) {}
     await _rescheduleBeeps();
-    notifyListeners();
   }
 
   Future<void> _rescheduleBeeps() async {
@@ -141,8 +143,13 @@ class AppState extends ChangeNotifier {
         sleepHour: sleepHour,
         intervalMinutes: beepIntervalMinutes,
       );
-    } catch (_) {
-      // Non-fatal
+    } catch (e, st) {
+      // Never crash the app (MIUI "keeps stopping") because of alarm APIs.
+      assert(() {
+        // ignore: avoid_print
+        print('rescheduleBeeps failed: $e\n$st');
+        return true;
+      }());
     }
   }
 

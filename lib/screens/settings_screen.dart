@@ -66,16 +66,24 @@ class SettingsScreen extends StatelessWidget {
                         ),
                         selected: appState.beepIntervalMinutes == minutes,
                         onSelected: (_) async {
-                          await appState.updateBeepInterval(minutes);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Scheduled: ${appState.beepIntervalLabel}. '
-                                  'Leave the app and wait to verify release builds.',
+                          try {
+                            await appState.updateBeepInterval(minutes);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Scheduled: ${appState.beepIntervalLabel}. '
+                                    'Leave the app and wait to verify.',
+                                  ),
                                 ),
-                              ),
-                            );
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Could not schedule: $e')),
+                              );
+                            }
                           }
                         },
                       ),

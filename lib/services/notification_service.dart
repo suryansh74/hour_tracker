@@ -138,17 +138,34 @@ class NotificationService {
     required int intervalMinutes,
   }) async {
     final interval = intervalMinutes.clamp(1, 24 * 60);
-    await _cancelIntervalBeeps();
+
+    // MIUI/Xiaomi can kill the app if we schedule dozens of alarmClock alarms
+    // in one UI tap. Keep short-interval test batches small.
+    final count = interval <= 5
+        ? 8
+        : interval <= 30
+            ? 16
+            : maxPendingBeeps;
+
+    try {
+      await _cancelIntervalBeeps();
+    } catch (e) {
+      debugPrint('cancel before schedule: $e');
+    }
 
     final times = _nextBeepTimes(
       wakeHour: wakeHour,
       sleepHour: sleepHour,
       intervalMinutes: interval,
-      count: maxPendingBeeps,
+      count: count,
     );
 
     final exactOk = await canScheduleExactAlarms();
-    var mode = exactOk ? AndroidScheduleMode.alarmClock : AndroidScheduleMode.inexactAllowWhileIdle;
+    // Prefer exactAllowWhileIdle over alarmClock — alarmClock is stricter on MIUI
+    // and caused "keeps stopping" when selecting 1 min on release APKs.
+    var mode = exactOk
+        ? AndroidScheduleMode.exactAllowWhileIdle
+        : AndroidScheduleMode.inexactAllowWhileIdle;
 
     debugPrint(
       'scheduleBeeps: interval=${interval}m wake=$wakeHour sleep=$sleepHour '
@@ -159,29 +176,32 @@ class NotificationService {
     for (var i = 0; i < times.length; i++) {
       final when = times[i];
       final id = _intervalIdStart + i;
-      final label = '${when.hour.toString().padLeft(2, '0')}:${when.minute.toString().padLeft(2, '0')}';
-      final ok = await _zonedOneShot(
-        id: id,
-        title: 'Log your activity',
-        body: 'Check-in time ($label). What were you doing?',
-        when: when,
-        mode: mode,
-        payload: 'interval:${when.hour}:${when.minute}',
-      );
-      if (ok) {
-        scheduled++;
-      } else if (mode == AndroidScheduleMode.alarmClock) {
-        mode = AndroidScheduleMode.exactAllowWhileIdle;
-        if (await _zonedOneShot(
+      final label =
+          '${when.hour.toString().padLeft(2, '0')}:${when.minute.toString().padLeft(2, '0')}';
+      try {
+        final ok = await _zonedOneShot(
           id: id,
           title: 'Log your activity',
           body: 'Check-in time ($label). What were you doing?',
           when: when,
           mode: mode,
           payload: 'interval:${when.hour}:${when.minute}',
-        )) {
+        );
+        if (ok) {
           scheduled++;
+        } else if (mode == AndroidScheduleMode.exactAllowWhileIdle) {
+          final ok2 = await _zonedOneShot(
+            id: id,
+            title: 'Log your activity',
+            body: 'Check-in time ($label). What were you doing?',
+            when: when,
+            mode: AndroidScheduleMode.inexactAllowWhileIdle,
+            payload: 'interval:${when.hour}:${when.minute}',
+          );
+          if (ok2) scheduled++;
         }
+      } catch (e) {
+        debugPrint('schedule loop id=$id: $e');
       }
     }
     debugPrint('scheduleBeeps done: $scheduled / ${times.length}');
@@ -228,12 +248,12 @@ class NotificationService {
   }
 
   Future<void> _cancelIntervalBeeps() async {
-    for (var id = _intervalIdStart; id <= _intervalIdEnd; id++) {
+    // Only clear the rolling window we use (not hundreds of awaits — slow on MIUI).
+    for (var i = 0; i < maxPendingBeeps; i++) {
       try {
-        await _plugin.cancel(id);
+        await _plugin.cancel(_intervalIdStart + i);
       } catch (_) {}
     }
-    // Also clear legacy hourly ids 0-23 from older builds.
     for (var h = 0; h < 24; h++) {
       try {
         await _plugin.cancel(h);
