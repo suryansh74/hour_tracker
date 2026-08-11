@@ -4,7 +4,10 @@ import 'package:provider/provider.dart';
 
 import '../models/category.dart';
 import '../providers/app_state.dart';
+import 'package:permission_handler/permission_handler.dart';
+
 import '../services/notification_service.dart';
+import 'about_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -122,6 +125,15 @@ class SettingsScreen extends StatelessWidget {
                     }
                   },
                 ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.settings_outlined),
+                  label: const Text('Open system notification settings'),
+                  onPressed: () async {
+                    // Opens the app's system settings page (Notifications is one tap away).
+                    await openAppSettings();
+                  },
+                ),
               ],
             ),
           ),
@@ -142,6 +154,29 @@ class SettingsScreen extends StatelessWidget {
                   icon: const Icon(Icons.delete_sweep_outlined),
                   label: const Text('Delete data by date range…'),
                   onPressed: () => _showDeleteOldDataDialog(context),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          _SectionCard(
+            title: 'About',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Why this app exists and how to use it.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.info_outline),
+                  label: const Text('About Hour Tracker'),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const AboutScreen()),
+                    );
+                  },
                 ),
               ],
             ),
