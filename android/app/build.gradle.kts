@@ -21,7 +21,14 @@ android {
     }
     buildTypes {
         release {
+            // Release APK was crashing ScheduledNotificationReceiver with
+            // "Missing type parameter" (Gson TypeToken stripped by R8).
             signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }
