@@ -1,33 +1,15 @@
-# Build a release APK and publish a GitHub Release (with the APK attached).
-#
-# How to run:
-#   1. GitHub → Actions → "Release APK" → Run workflow
-#   2. Enter tag name (e.g. v1.0.4-intervaltest2) and optional notes
-#   3. Wait for the job; the Release appears under Releases with app-release.apk
-#
-# Or push a tag: git tag v1.0.5 && git push origin v1.0.5
 name: Release APK
 
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag (e.g. v1.0.4-intervaltest2)'
+        description: 'Release tag (e.g. v1.0.4-intervaltest3)'
         required: true
-        type: string
-      title:
-        description: 'Release title (optional)'
-        required: false
-        type: string
       prerelease:
-        description: 'Mark as pre-release'
+        description: 'Pre-release (true/false)'
         required: false
-        type: boolean
-        default: true
-      notes:
-        description: 'Release notes (optional)'
-        required: false
-        type: string
+        default: 'true'
   push:
     tags:
       - 'v*'
@@ -36,69 +18,51 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Java
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
-      - name: Resolve dependencies
-        run: flutter pub get
+      - run: flutter pub get
 
-      - name: Build APK (release)
-        run: flutter build apk --release
+      - run: flutter build apk --release
 
-      - name: Resolve tag / title
-        id: meta
+      - name: Tag name
+        id: tag
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            TAG="${{ inputs.tag }}"
-            TITLE="${{ inputs.title }}"
-            NOTES="${{ inputs.notes }}"
-            PRE="${{ inputs.prerelease }}"
+            echo "name=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+            echo "pre=${{ github.event.inputs.prerelease }}" >> $GITHUB_OUTPUT
           else
-            TAG="${GITHUB_REF_NAME}"
-            TITLE=""
-            NOTES=""
-            PRE="false"
+            echo "name=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+            echo "pre=true" >> $GITHUB_OUTPUT
           fi
-          if [ -z "$TITLE" ]; then
-            TITLE="Hour Tracker $TAG"
-          fi
-          if [ -z "$NOTES" ]; then
-            NOTES="Automated release from branch \`${GITHUB_REF_NAME}\` (commit ${GITHUB_SHA::7}).
 
-Install the APK from Assets below."
-          fi
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
-          echo "prerelease=$PRE" >> "$GITHUB_OUTPUT"
-          {
-            echo "notes<<NOTES_EOF"
-            echo "$NOTES"
-            echo "NOTES_EOF"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Publish GitHub Release + upload APK
-        uses: softprops/action-gh-release@v2
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: ${{ steps.meta.outputs.tag }}
-          name: ${{ steps.meta.outputs.title }}
-          body: ${{ steps.meta.outputs.notes }}
-          prerelease: ${{ steps.meta.outputs.prerelease }}
-          files: build/app/outputs/flutter-apk/app-release.apk
-          generate_release_notes: true
+          name: app-release
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Create GitHub Release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.tag.outputs.name }}"
+          PRE="${{ steps.tag.outputs.pre }}"
+          ARGS=( "$TAG" "build/app/outputs/flutter-apk/app-release.apk" --title "Hour Tracker $TAG" --notes "Automated release build. Install app-release.apk from Assets." )
+          if [ "$PRE" = "true" ]; then
+            ARGS+=( --prerelease )
+          fi
+          # Replace release if tag already exists without assets
+          gh release create "${ARGS[@]}" || gh release upload "$TAG" "build/app/outputs/flutter-apk/app-release.apk" --clobber
